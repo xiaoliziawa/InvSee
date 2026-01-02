@@ -1,6 +1,7 @@
 package com.lirxowo.invsee.network;
 
 import com.lirxowo.invsee.Invsee;
+import com.lirxowo.invsee.config.InvseeConfig;
 import com.lirxowo.invsee.entity.ItemMarkEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -14,11 +15,14 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 public record ItemMarkPayload(boolean isFromPlayerInventory, ItemStack itemStack) implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<ItemMarkPayload> TYPE =
@@ -48,12 +52,17 @@ public record ItemMarkPayload(boolean isFromPlayerInventory, ItemStack itemStack
         context.enqueueWork(() -> {
             Player player = context.player();
             if (player.level() instanceof ServerLevel level) {
-                level.getAllEntities().forEach(entity -> {
+                List<ItemMarkEntity> toRemove = new ArrayList<>();
+                for (var entity : level.getAllEntities()) {
                     if (entity instanceof ItemMarkEntity markEntity &&
                         markEntity.getOwnerName().equals(player.getName().getString())) {
-                        entity.discard();
+                        toRemove.add(markEntity);
                     }
-                });
+                }
+                // Now safely remove them
+                for (ItemMarkEntity entity : toRemove) {
+                    entity.discard();
+                }
 
                 Vec3 markLocation;
                 BlockPos containerPos = null;
@@ -71,6 +80,20 @@ public record ItemMarkPayload(boolean isFromPlayerInventory, ItemStack itemStack
                 ItemMarkEntity markEntity = new ItemMarkEntity(
                         level, player, markLocation, payload.itemStack, containerPos);
                 level.addFreshEntity(markEntity);
+
+                // Broadcast slot highlight to all nearby players
+                double syncRange = InvseeConfig.getMarkDisplayRange();
+                SlotHighlightSyncPayload syncPayload = new SlotHighlightSyncPayload(
+                        payload.itemStack, level.getGameTime());
+                PacketDistributor.sendToPlayersNear(
+                        level,
+                        null, // don't exclude anyone, include the sender too
+                        player.getX(),
+                        player.getY(),
+                        player.getZ(),
+                        syncRange,
+                        syncPayload
+                );
             }
         });
     }

@@ -30,12 +30,19 @@ public class InvseeConfig {
                      "Whether to show vanilla tooltip info next to the mark info box")
             .define("show_tooltip", true);
 
+    private static final ModConfigSpec.BooleanValue SHOW_EXTRA_INFO = BUILDER
+            .comment("是否显示更多物品信息（如耐久、附魔、能量等）",
+                     "Whether to show extra item info (durability, enchantments, energy, etc.)",
+                     "关闭时只显示物品图标和名称 / When disabled, only shows item icon and name")
+            .define("show_extra_info", false);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     private static int markDurationTicks = 100;
     private static int markDisplayRange = 64;
     private static int highlightDurationTicks = 100;
     private static boolean showTooltip = true;
+    private static boolean showExtraInfo = false;
 
     public static int getMarkDurationTicks() {
         return markDurationTicks;
@@ -65,11 +72,16 @@ public class InvseeConfig {
         return showTooltip;
     }
 
+    public static boolean isShowExtraInfo() {
+        return showExtraInfo;
+    }
+
     @SubscribeEvent
     static void onLoad(final ModConfigEvent event) {
         markDurationTicks = MARK_DURATION_SECONDS.get() * 20;
         markDisplayRange = MARK_DISPLAY_RANGE.get();
         highlightDurationTicks = HIGHLIGHT_DURATION_SECONDS.get() * 20;
         showTooltip = SHOW_TOOLTIP.get();
+        showExtraInfo = SHOW_EXTRA_INFO.get();
     }
 }

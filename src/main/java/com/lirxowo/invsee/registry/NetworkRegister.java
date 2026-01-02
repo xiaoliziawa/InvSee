@@ -2,6 +2,7 @@ package com.lirxowo.invsee.registry;
 
 import com.lirxowo.invsee.Invsee;
 import com.lirxowo.invsee.network.ItemMarkPayload;
+import com.lirxowo.invsee.network.SlotHighlightSyncPayload;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -16,6 +17,11 @@ public class NetworkRegister {
                 ItemMarkPayload.TYPE,
                 ItemMarkPayload.STREAM_CODEC,
                 ItemMarkPayload::handleDataInServer
+        );
+        registrar.playToClient(
+                SlotHighlightSyncPayload.TYPE,
+                SlotHighlightSyncPayload.STREAM_CODEC,
+                SlotHighlightSyncPayload::handleDataOnClient
         );
     }
 }

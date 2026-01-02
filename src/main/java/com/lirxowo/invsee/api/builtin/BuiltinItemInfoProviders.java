@@ -49,12 +49,17 @@ public class BuiltinItemInfoProviders {
         public List<Component> getInfoLines(ItemStack stack) {
             List<Component> lines = new ArrayList<>();
             Rarity rarity = stack.getRarity();
-            String name = switch (rarity) {
-                case UNCOMMON -> "Uncommon";
-                case RARE -> "Rare";
-                case EPIC -> "Epic";
-                default -> rarity.name();
-            };
+            String name;
+            if (rarity == Rarity.UNCOMMON) {
+                name = "Uncommon";
+            } else if (rarity == Rarity.RARE) {
+                name = "Rare";
+            } else if (rarity == Rarity.EPIC) {
+                name = "Epic";
+            } else {
+                // Handle custom rarities from mods (e.g., AvaritiaNeo's COSMIC)
+                name = rarity.name();
+            }
             lines.add(Component.literal("✦ " + name).withStyle(rarity.getStyleModifier()));
             return lines;
         }
@@ -88,10 +93,7 @@ public class BuiltinItemInfoProviders {
         }
 
         private ChatFormatting getDurabilityColor(float percent) {
-            if (percent > 0.75f) return ChatFormatting.GREEN;
-            if (percent > 0.5f) return ChatFormatting.YELLOW;
-            if (percent > 0.25f) return ChatFormatting.GOLD;
-            return ChatFormatting.RED;
+            return ItemInfoHelper.getPercentColor(percent);
         }
 
         @Override
@@ -169,10 +171,7 @@ public class BuiltinItemInfoProviders {
         }
 
         private ChatFormatting getEnergyColor(float percent) {
-            if (percent > 0.75f) return ChatFormatting.GREEN;
-            if (percent > 0.5f) return ChatFormatting.YELLOW;
-            if (percent > 0.25f) return ChatFormatting.GOLD;
-            return ChatFormatting.RED;
+            return ItemInfoHelper.getPercentColor(percent);
         }
 
         @Override

@@ -94,8 +94,12 @@ public class RenderGuiEventHandler {
 
             Component itemName = itemStack.getHoverName();
             Component ownerName = Component.literal("[" + markEntity.getOwnerName() + "]");
-            List<Component> infoLines = ItemInfoHelper.getItemInfoLines(itemStack);
-            List<Component> tooltipLines = ItemInfoHelper.getItemTooltipLines(itemStack);
+
+            // Only get extra info if config allows
+            boolean showExtraInfo = InvseeConfig.isShowExtraInfo();
+            List<Component> infoLines = showExtraInfo ? ItemInfoHelper.getItemInfoLines(itemStack) : List.of();
+            List<Component> tooltipLines = InvseeConfig.isShowTooltip()
+                    ? ItemInfoHelper.getItemTooltipLines(itemStack) : List.of();
             Rarity rarity = itemStack.getRarity();
 
             float partialTick = event.getPartialTick().getGameTimeDeltaPartialTick(true);

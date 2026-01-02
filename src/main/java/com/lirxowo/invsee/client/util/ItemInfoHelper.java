@@ -4,6 +4,7 @@ import com.lirxowo.invsee.api.InvseeAPIHandler;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
@@ -68,12 +69,26 @@ public class ItemInfoHelper {
     }
 
     public static int getRarityColor(Rarity rarity) {
-        return switch (rarity) {
-            case COMMON -> 0xFFFFFF;
-            case UNCOMMON -> 0xFFFF55;
-            case RARE -> 0x55FFFF;
-            case EPIC -> 0xFF55FF;
-        };
+        // Handle vanilla rarities
+        if (rarity == Rarity.COMMON) return 0xFFFFFF;
+        if (rarity == Rarity.UNCOMMON) return 0xFFFF55;
+        if (rarity == Rarity.RARE) return 0x55FFFF;
+        if (rarity == Rarity.EPIC) return 0xFF55FF;
+
+        // Handle custom rarities from mods (e.g., AvaritiaNeo's COSMIC)
+        // Try to get color from the rarity's style modifier
+        try {
+            ChatFormatting formatting = rarity.getStyleModifier().apply(Style.EMPTY).getColor() != null
+                ? null : ChatFormatting.WHITE;
+            var style = rarity.getStyleModifier().apply(Style.EMPTY);
+            var color = style.getColor();
+            if (color != null) {
+                return color.getValue();
+            }
+        } catch (Exception ignored) {
+        }
+
+        return 0xFFFFFF;
     }
 
     public static ChatFormatting getPercentColor(float percent) {
