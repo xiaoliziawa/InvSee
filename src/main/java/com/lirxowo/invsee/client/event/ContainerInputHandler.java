@@ -3,6 +3,7 @@ package com.lirxowo.invsee.client.event;
 import com.lirxowo.invsee.Invsee;
 import com.lirxowo.invsee.client.KeyBindings;
 import com.lirxowo.invsee.client.tracking.TrackingList;
+import com.lirxowo.invsee.compat.jei.JEICompat;
 import com.lirxowo.invsee.network.ItemMarkPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -62,23 +63,32 @@ public class ContainerInputHandler {
             return false;
         }
 
-        if (!(mc.screen instanceof AbstractContainerScreen<?> containerScreen)) {
+        if (mc.screen == null) {
             return false;
         }
 
-        Slot hoveredSlot = containerScreen.getSlotUnderMouse();
-        if (hoveredSlot == null || !hoveredSlot.hasItem()) {
+        ItemStack itemStack = null;
+        boolean isFromPlayerInventory = false;
+
+        if (mc.screen instanceof AbstractContainerScreen<?> containerScreen) {
+            Slot hoveredSlot = containerScreen.getSlotUnderMouse();
+            if (hoveredSlot != null && hoveredSlot.hasItem()) {
+                itemStack = hoveredSlot.getItem();
+                boolean isPlayerInventorySlot = hoveredSlot.container == mc.player.getInventory();
+                boolean isPlayerInventoryScreen = mc.screen instanceof InventoryScreen;
+                isFromPlayerInventory = isPlayerInventorySlot || isPlayerInventoryScreen;
+            }
+        }
+
+        if ((itemStack == null || itemStack.isEmpty()) && JEICompat.isLoaded()) {
+            itemStack = JEICompat.getItemUnderMouse();
+            isFromPlayerInventory = false;
+        }
+
+        if (itemStack == null || itemStack.isEmpty()) {
             return false;
         }
 
-        ItemStack itemStack = hoveredSlot.getItem();
-        if (itemStack.isEmpty()) {
-            return false;
-        }
-
-        boolean isPlayerInventorySlot = hoveredSlot.container == mc.player.getInventory();
-        boolean isPlayerInventoryScreen = mc.screen instanceof InventoryScreen;
-        boolean isFromPlayerInventory = isPlayerInventorySlot || isPlayerInventoryScreen;
         ItemMarkPayload payload = new ItemMarkPayload(isFromPlayerInventory, itemStack);
         PacketDistributor.sendToServer(payload);
 
