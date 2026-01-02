@@ -5,13 +5,8 @@ import com.lirxowo.invsee.network.ItemMarkPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.Container;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -21,11 +16,10 @@ import org.lwjgl.glfw.GLFW;
 
 /**
  * 客户端输入事件处理器 - 处理容器界面中的鼠标中键点击
+ * 容器位置的获取由服务端完成，因为有些模组不会把BlockEntity同步到客户端
  */
 @EventBusSubscriber(modid = Invsee.MODID, value = Dist.CLIENT)
 public class ContainerInputHandler {
-    // 视线检测范围
-    private static final double PICK_RANGE = 8.0;
 
     @SubscribeEvent
     public static void onMouseClick(InputEvent.MouseButton.Pre event) {
@@ -56,37 +50,15 @@ public class ContainerInputHandler {
         }
 
         // 判断悬停的槽位是否属于玩家背包
-        // 如果是玩家背包的槽位，不应该高亮任何容器
         boolean isPlayerInventorySlot = hoveredSlot.container == mc.player.getInventory();
 
-        // 如果是玩家背包界面（E键打开的），永远不高亮容器
+        // 如果是玩家背包界面（E键打开的），标记为玩家背包
         boolean isPlayerInventoryScreen = mc.screen instanceof InventoryScreen;
 
-        BlockPos containerPos = null;
-
-        // 只有当不是玩家背包的槽位，且不是玩家背包界面时，才检测视线指向的容器
-        if (!isPlayerInventorySlot && !isPlayerInventoryScreen) {
-            HitResult hitResult = mc.player.pick(PICK_RANGE, 0, false);
-
-            if (hitResult.getType() == HitResult.Type.BLOCK) {
-                BlockHitResult blockHitResult = (BlockHitResult) hitResult;
-                BlockPos hitPos = blockHitResult.getBlockPos();
-                BlockEntity blockEntity = mc.level.getBlockEntity(hitPos);
-
-                // 只有当视线指向的方块是容器时才使用
-                if (blockEntity instanceof Container) {
-                    containerPos = hitPos;
-                }
-            }
-        }
-
         // 发送网络包到服务器
-        ItemMarkPayload payload;
-        if (containerPos != null) {
-            payload = ItemMarkPayload.withContainer(containerPos, itemStack);
-        } else {
-            payload = ItemMarkPayload.withoutContainer(itemStack);
-        }
+        // isFromPlayerInventory: 如果是玩家背包槽位或玩家背包界面，则为true
+        boolean isFromPlayerInventory = isPlayerInventorySlot || isPlayerInventoryScreen;
+        ItemMarkPayload payload = new ItemMarkPayload(isFromPlayerInventory, itemStack);
         PacketDistributor.sendToServer(payload);
 
         // 播放音效反馈
