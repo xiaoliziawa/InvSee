@@ -3,6 +3,7 @@ package com.lirxowo.invsee.client.event;
 import com.lirxowo.invsee.Invsee;
 import com.lirxowo.invsee.client.util.GuiUtil;
 import com.lirxowo.invsee.client.util.ItemInfoHelper;
+import com.lirxowo.invsee.config.InvseeConfig;
 import com.lirxowo.invsee.entity.ItemMarkEntity;
 import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -33,7 +34,6 @@ import java.util.List;
  */
 @EventBusSubscriber(modid = Invsee.MODID, value = Dist.CLIENT)
 public class RenderGuiEventHandler {
-    private static final float MARK_DISPLAY_RANGE = 64.0F;
     private static final float FRAME_PROTECT = 10;
     private static final float ICON_WIDTH_WITH_MARGIN = 18;
     private static final float MIN_REF_WIDTH = 60;
@@ -81,10 +81,12 @@ public class RenderGuiEventHandler {
         Font font = mc.font;
         Level level = mc.level;
 
-        double markDisplayRangeSq = MARK_DISPLAY_RANGE * MARK_DISPLAY_RANGE;
+        // 使用配置中的显示距离
+        float markDisplayRange = InvseeConfig.getMarkDisplayRange();
+        double markDisplayRangeSq = InvseeConfig.getMarkDisplayRangeSq();
         List<ItemMarkEntity> list = level.getEntitiesOfClass(
                 ItemMarkEntity.class,
-                player.getBoundingBox().inflate(MARK_DISPLAY_RANGE),
+                player.getBoundingBox().inflate(markDisplayRange),
                 e -> e.distanceToSqr(player) <= markDisplayRangeSq
         );
 

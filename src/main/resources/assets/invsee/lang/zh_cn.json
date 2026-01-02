@@ -1,3 +1,5 @@
 {
-  "entity.invsee.item_mark": "物品标记"
+  "entity.invsee.item_mark": "物品标记",
+  "key.invsee.mark_item": "标记/高亮物品",
+  "key.categories.invsee": "InvSee"
 }

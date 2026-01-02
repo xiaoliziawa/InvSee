@@ -1,5 +1,6 @@
 package com.lirxowo.invsee.entity;
 
+import com.lirxowo.invsee.config.InvseeConfig;
 import com.lirxowo.invsee.registry.EntityRegister;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -19,9 +20,6 @@ import java.util.Optional;
  * 物品标记实体 - 用于在世界中高亮显示容器中的物品
  */
 public class ItemMarkEntity extends Entity {
-    // 最大存活时间: 5秒 (5 * 20 ticks)
-    private static final int MAX_TIME = 5 * 20;
-
     // 网络同步数据
     private static final EntityDataAccessor<String> OWNER_NAME = SynchedEntityData.defineId(
             ItemMarkEntity.class, EntityDataSerializers.STRING);
@@ -58,7 +56,7 @@ public class ItemMarkEntity extends Entity {
         // 客户端和服务端都计时（客户端用于渲染淡出效果）
         timer++;
         if (!this.level().isClientSide) {
-            if (timer >= MAX_TIME) {
+            if (timer >= InvseeConfig.getMarkDurationTicks()) {
                 this.discard();
             }
         }
@@ -109,11 +107,12 @@ public class ItemMarkEntity extends Entity {
     }
 
     public float getLifeProgress() {
-        return (float) timer / MAX_TIME;
+        return (float) timer / InvseeConfig.getMarkDurationTicks();
     }
 
     @Override
     public boolean shouldRenderAtSqrDistance(double distance) {
-        return distance < 4096.0; // 64格内渲染
+        double range = InvseeConfig.getMarkDisplayRange();
+        return distance < range * range;
     }
 }
