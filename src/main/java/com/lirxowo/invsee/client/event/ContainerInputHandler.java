@@ -5,6 +5,7 @@ import com.lirxowo.invsee.client.KeyBindings;
 import com.lirxowo.invsee.client.tracking.TrackingList;
 import com.lirxowo.invsee.compat.jei.JEICompat;
 import com.lirxowo.invsee.network.ItemMarkPayload;
+import com.lirxowo.invsee.network.ItemMarkPayload.MarkSource;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -68,28 +69,38 @@ public class ContainerInputHandler {
         }
 
         ItemStack itemStack = null;
-        boolean isFromPlayerInventory = false;
+        MarkSource source = MarkSource.VIRTUAL; // Default to virtual (JEI, etc.)
 
-        if (mc.screen instanceof AbstractContainerScreen<?> containerScreen) {
+        // First, check if JEI has an item under mouse (prioritize JEI to fix the bug)
+        if (JEICompat.isLoaded()) {
+            itemStack = JEICompat.getItemUnderMouse();
+            if (itemStack != null && !itemStack.isEmpty()) {
+                // Item is from JEI, mark as virtual source
+                source = MarkSource.VIRTUAL;
+            }
+        }
+
+        // If no JEI item, check container slots
+        if ((itemStack == null || itemStack.isEmpty()) && mc.screen instanceof AbstractContainerScreen<?> containerScreen) {
             Slot hoveredSlot = containerScreen.getSlotUnderMouse();
             if (hoveredSlot != null && hoveredSlot.hasItem()) {
                 itemStack = hoveredSlot.getItem();
                 boolean isPlayerInventorySlot = hoveredSlot.container == mc.player.getInventory();
                 boolean isPlayerInventoryScreen = mc.screen instanceof InventoryScreen;
-                isFromPlayerInventory = isPlayerInventorySlot || isPlayerInventoryScreen;
-            }
-        }
 
-        if ((itemStack == null || itemStack.isEmpty()) && JEICompat.isLoaded()) {
-            itemStack = JEICompat.getItemUnderMouse();
-            isFromPlayerInventory = false;
+                if (isPlayerInventorySlot || isPlayerInventoryScreen) {
+                    source = MarkSource.PLAYER_INVENTORY;
+                } else {
+                    source = MarkSource.CONTAINER;
+                }
+            }
         }
 
         if (itemStack == null || itemStack.isEmpty()) {
             return false;
         }
 
-        ItemMarkPayload payload = new ItemMarkPayload(isFromPlayerInventory, itemStack);
+        ItemMarkPayload payload = new ItemMarkPayload(source, itemStack);
         PacketDistributor.sendToServer(payload);
 
         TrackingList.startTracking(itemStack, mc.level.getGameTime());

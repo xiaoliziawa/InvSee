@@ -24,21 +24,32 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-public record ItemMarkPayload(boolean isFromPlayerInventory, ItemStack itemStack) implements CustomPacketPayload {
+public record ItemMarkPayload(MarkSource source, ItemStack itemStack) implements CustomPacketPayload {
+
+    /**
+     * Source of the marked item
+     */
+    public enum MarkSource {
+        PLAYER_INVENTORY,  // From player's own inventory
+        CONTAINER,         // From a container (chest, etc.)
+        VIRTUAL            // From JEI or other virtual sources (not a real container)
+    }
+
     public static final CustomPacketPayload.Type<ItemMarkPayload> TYPE =
             new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(Invsee.MODID, "item_mark"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, ItemMarkPayload> STREAM_CODEC = new StreamCodec<>() {
         @Override
         public ItemMarkPayload decode(RegistryFriendlyByteBuf buf) {
-            boolean isFromPlayerInventory = buf.readBoolean();
+            byte sourceOrdinal = buf.readByte();
+            MarkSource source = MarkSource.values()[sourceOrdinal];
             ItemStack stack = ItemStack.OPTIONAL_STREAM_CODEC.decode(buf);
-            return new ItemMarkPayload(isFromPlayerInventory, stack);
+            return new ItemMarkPayload(source, stack);
         }
 
         @Override
         public void encode(RegistryFriendlyByteBuf buf, ItemMarkPayload payload) {
-            buf.writeBoolean(payload.isFromPlayerInventory);
+            buf.writeByte(payload.source.ordinal());
             ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, payload.itemStack);
         }
     };
@@ -67,7 +78,8 @@ public record ItemMarkPayload(boolean isFromPlayerInventory, ItemStack itemStack
                 Vec3 markLocation;
                 BlockPos containerPos = null;
 
-                if (!payload.isFromPlayerInventory) {
+                // Only try to get container position if source is CONTAINER
+                if (payload.source == MarkSource.CONTAINER) {
                     containerPos = getContainerPosFromMenu(player);
                 }
 
