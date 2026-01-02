@@ -4,14 +4,14 @@ import com.lirxowo.invsee.Invsee;
 import com.lirxowo.invsee.network.ItemMarkPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.Container;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -19,13 +19,13 @@ import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.lwjgl.glfw.GLFW;
 
-import javax.annotation.Nullable;
-
 /**
  * 客户端输入事件处理器 - 处理容器界面中的鼠标中键点击
  */
 @EventBusSubscriber(modid = Invsee.MODID, value = Dist.CLIENT)
 public class ContainerInputHandler {
+    // 视线检测范围
+    private static final double PICK_RANGE = 8.0;
 
     @SubscribeEvent
     public static void onMouseClick(InputEvent.MouseButton.Pre event) {
@@ -55,9 +55,30 @@ public class ContainerInputHandler {
             return;
         }
 
-        // 从菜单获取容器位置
-        AbstractContainerMenu menu = containerScreen.getMenu();
-        BlockPos containerPos = getContainerBlockPos(menu, mc.player);
+        // 判断悬停的槽位是否属于玩家背包
+        // 如果是玩家背包的槽位，不应该高亮任何容器
+        boolean isPlayerInventorySlot = hoveredSlot.container == mc.player.getInventory();
+
+        // 如果是玩家背包界面（E键打开的），永远不高亮容器
+        boolean isPlayerInventoryScreen = mc.screen instanceof InventoryScreen;
+
+        BlockPos containerPos = null;
+
+        // 只有当不是玩家背包的槽位，且不是玩家背包界面时，才检测视线指向的容器
+        if (!isPlayerInventorySlot && !isPlayerInventoryScreen) {
+            HitResult hitResult = mc.player.pick(PICK_RANGE, 0, false);
+
+            if (hitResult.getType() == HitResult.Type.BLOCK) {
+                BlockHitResult blockHitResult = (BlockHitResult) hitResult;
+                BlockPos hitPos = blockHitResult.getBlockPos();
+                BlockEntity blockEntity = mc.level.getBlockEntity(hitPos);
+
+                // 只有当视线指向的方块是容器时才使用
+                if (blockEntity instanceof Container) {
+                    containerPos = hitPos;
+                }
+            }
+        }
 
         // 发送网络包到服务器
         ItemMarkPayload payload;
@@ -76,38 +97,5 @@ public class ContainerInputHandler {
 
         // 阻止默认行为
         event.setCanceled(true);
-    }
-
-    /**
-     * 从容器菜单获取关联的方块位置
-     * 只通过菜单的Container获取，不使用hitResult
-     * 这样可以正确区分容器方块和玩家背包
-     */
-    @Nullable
-    private static BlockPos getContainerBlockPos(AbstractContainerMenu menu, Player player) {
-        // 方法1: 对于ChestMenu，获取其container
-        if (menu instanceof ChestMenu chestMenu) {
-            Container container = chestMenu.getContainer();
-            if (container instanceof BlockEntity blockEntity) {
-                return blockEntity.getBlockPos();
-            }
-        }
-
-        // 方法2: 遍历所有槽位，查找属于容器的槽位
-        for (Slot slot : menu.slots) {
-            Container slotContainer = slot.container;
-            // 跳过玩家背包
-            if (slotContainer == player.getInventory()) {
-                continue;
-            }
-            // 检查是否是BlockEntity
-            if (slotContainer instanceof BlockEntity blockEntity) {
-                return blockEntity.getBlockPos();
-            }
-        }
-
-        // 如果没有找到容器方块（如玩家背包界面），返回null
-        // 不再使用hitResult，避免错误地将玩家视线指向的容器方块作为标记位置
-        return null;
     }
 }

@@ -4,7 +4,6 @@ import com.lirxowo.invsee.entity.ItemMarkEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -19,9 +18,13 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.VertexFormat;
+import net.minecraft.client.renderer.RenderStateShard;
+
+import java.util.OptionalDouble;
 
 /**
  * 物品标记渲染器 - 只渲染3D物品和容器边框
@@ -29,6 +32,24 @@ import net.minecraft.world.phys.Vec3;
  */
 public class ItemMarkRenderer extends EntityRenderer<ItemMarkEntity> {
     private final ItemRenderer itemRenderer;
+
+    // 自定义渲染类型 - 不进行深度测试的线条，可以透过方块显示
+    private static final RenderType LINES_SEE_THROUGH = RenderType.create(
+            "invsee_lines_see_through",
+            DefaultVertexFormat.POSITION_COLOR_NORMAL,
+            VertexFormat.Mode.LINES,
+            1536,
+            RenderType.CompositeState.builder()
+                    .setShaderState(RenderStateShard.RENDERTYPE_LINES_SHADER)
+                    .setLineState(new RenderStateShard.LineStateShard(OptionalDouble.of(2.0))) // 线条宽度
+                    .setLayeringState(RenderStateShard.VIEW_OFFSET_Z_LAYERING)
+                    .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
+                    .setOutputState(RenderStateShard.ITEM_ENTITY_TARGET)
+                    .setWriteMaskState(RenderStateShard.COLOR_WRITE) // 只写颜色，不写深度
+                    .setCullState(RenderStateShard.NO_CULL)
+                    .setDepthTestState(RenderStateShard.NO_DEPTH_TEST) // 不进行深度测试
+                    .createCompositeState(false)
+    );
 
     public ItemMarkRenderer(EntityRendererProvider.Context context) {
         super(context);
@@ -54,17 +75,13 @@ public class ItemMarkRenderer extends EntityRenderer<ItemMarkEntity> {
         ItemStack itemStack = entity.getMarkedItem();
         if (itemStack.isEmpty()) return;
 
-        Minecraft mc = Minecraft.getInstance();
         float lifeProgress = entity.getLifeProgress();
         float alpha = lifeProgress > 0.8f ? (1f - lifeProgress) / 0.2f : 1f;
 
-        // 渲染容器方块边框高亮
+        // 渲染容器方块边框高亮 - 只要有容器位置就渲染
         BlockPos containerPos = entity.getContainerPos();
-        if (containerPos != null && mc.level != null) {
-            BlockEntity blockEntity = mc.level.getBlockEntity(containerPos);
-            if (blockEntity instanceof net.minecraft.world.Container) {
-                renderContainerOutline(poseStack, bufferSource, entity, containerPos, alpha);
-            }
+        if (containerPos != null) {
+            renderContainerOutline(poseStack, bufferSource, entity, containerPos, alpha);
         }
 
         // 上下浮动效果 - 参考 ItemEntityRenderer
@@ -94,7 +111,7 @@ public class ItemMarkRenderer extends EntityRenderer<ItemMarkEntity> {
     }
 
     /**
-     * 渲染容器方块边框
+     * 渲染容器方块边框 - 使用透视渲染，可以穿透方块显示
      */
     private void renderContainerOutline(PoseStack poseStack, MultiBufferSource bufferSource,
                                         ItemMarkEntity entity, BlockPos containerPos, float alpha) {
@@ -108,7 +125,9 @@ public class ItemMarkRenderer extends EntityRenderer<ItemMarkEntity> {
 
         AABB box = new AABB(0, 0, 0, 1, 1, 1);
         float r = 1.0f, g = 0.84f, b = 0.0f;
-        VertexConsumer lineBuffer = bufferSource.getBuffer(RenderType.lines());
+
+        // 使用自定义的透视渲染类型
+        VertexConsumer lineBuffer = bufferSource.getBuffer(LINES_SEE_THROUGH);
         LevelRenderer.renderLineBox(poseStack, lineBuffer, box, r, g, b, alpha);
 
         poseStack.popPose();
