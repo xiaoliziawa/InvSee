@@ -17,9 +17,7 @@ public class Invsee {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public Invsee(IEventBus modEventBus) {
-        // 注册实体类型
         EntityRegister.register(modEventBus);
-
         LOGGER.info("InvSee mod initialized!");
     }
 

@@ -3,10 +3,17 @@ package com.lirxowo.invsee.client.util;
 import com.lirxowo.invsee.compat.ae2.AE2Compat;
 import com.lirxowo.invsee.compat.mekanism.MekanismCompat;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffectUtil;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.neoforged.neoforge.capabilities.Capabilities;
@@ -103,17 +110,23 @@ public class ItemInfoHelper {
             }
         }
 
-        // 6. Mekanism 化学品信息（如果模组加载）
+        // 6. 药水效果信息（药水、喷溅药水、滞留药水、药水箭）
+        PotionContents potionContents = stack.get(DataComponents.POTION_CONTENTS);
+        if (potionContents != null && potionContents.hasEffects()) {
+            lines.addAll(getPotionEffectLines(potionContents));
+        }
+
+        // 7. Mekanism 化学品信息（如果模组加载）
         if (MekanismCompat.isLoaded()) {
             lines.addAll(MekanismCompat.getChemicalInfo(stack));
         }
 
-        // 7. AE2 存储原件信息（如果模组加载）
+        // 8. AE2 存储原件信息（如果模组加载）
         if (AE2Compat.isLoaded()) {
             lines.addAll(AE2Compat.getStorageCellInfo(stack));
         }
 
-        // 8. 数量（如果堆叠数大于1）
+        // 9. 数量（如果堆叠数大于1）
         if (stack.getCount() > 1) {
             lines.add(Component.literal("x" + stack.getCount()).withStyle(ChatFormatting.YELLOW));
         }
@@ -132,6 +145,84 @@ public class ItemInfoHelper {
             default -> rarity.name();
         };
         return Component.literal("✦ " + name).withStyle(rarity.getStyleModifier());
+    }
+
+    /**
+     * 获取药水效果信息行
+     */
+    private static List<Component> getPotionEffectLines(PotionContents potionContents) {
+        List<Component> lines = new ArrayList<>();
+        float tickRate = 20.0F; // 默认 tick rate
+
+        for (MobEffectInstance effect : potionContents.getAllEffects()) {
+            // 获取效果名称
+            Component effectName = Component.translatable(effect.getDescriptionId());
+
+            // 添加效果等级（如果大于 I）
+            if (effect.getAmplifier() > 0) {
+                effectName = Component.translatable("potion.withAmplifier", effectName,
+                        Component.translatable("potion.potency." + effect.getAmplifier()));
+            }
+
+            // 添加持续时间（如果不是瞬时效果）
+            if (!effect.endsWithin(20)) {
+                Component duration = MobEffectUtil.formatDuration(effect, 1.0F, tickRate);
+                effectName = Component.translatable("potion.withDuration", effectName, duration);
+            }
+
+            // 使用效果的类别颜色
+            ChatFormatting color = effect.getEffect().value().getCategory().getTooltipFormatting();
+            lines.add(Component.literal("⚗ ").withStyle(color).append(effectName.copy().withStyle(color)));
+        }
+
+        return lines;
+    }
+
+    /**
+     * 获取物品的原版 Tooltip 内容（不包括名称）
+     * 用于在单独的信息框中显示
+     */
+    public static List<Component> getItemTooltipLines(ItemStack stack) {
+        List<Component> tooltipLines = new ArrayList<>();
+
+        if (stack.isEmpty()) {
+            return tooltipLines;
+        }
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) {
+            return tooltipLines;
+        }
+
+        try {
+            // 获取原版 tooltip
+            TooltipFlag flag = mc.options.advancedItemTooltips ? TooltipFlag.ADVANCED : TooltipFlag.NORMAL;
+            Item.TooltipContext context = Item.TooltipContext.of(mc.level);
+            List<Component> fullTooltip = stack.getTooltipLines(context, mc.player, flag);
+
+            // 跳过第一行（物品名称）和我们已经显示的信息
+            // 只保留原版 tooltip 中的额外信息
+            if (fullTooltip.size() > 1) {
+                for (int i = 1; i < fullTooltip.size(); i++) {
+                    Component line = fullTooltip.get(i);
+                    String text = line.getString();
+
+                    // 跳过空行
+                    if (text.isEmpty()) continue;
+
+                    // 跳过耐久信息（我们已经显示了）
+                    if (text.contains("/") && text.matches(".*\\d+.*")) {
+                        // 可能是耐久，但也可能是其他信息，保守处理
+                    }
+
+                    tooltipLines.add(line);
+                }
+            }
+        } catch (Exception ignored) {
+            // 忽略获取 tooltip 时的错误
+        }
+
+        return tooltipLines;
     }
 
     /**
