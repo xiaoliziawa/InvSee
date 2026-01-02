@@ -26,14 +26,9 @@ import net.minecraft.client.renderer.RenderStateShard;
 
 import java.util.OptionalDouble;
 
-/**
- * 物品标记渲染器 - 只渲染3D物品和容器边框
- * 文字渲染由 RenderGuiEventHandler 处理
- */
 public class ItemMarkRenderer extends EntityRenderer<ItemMarkEntity> {
     private final ItemRenderer itemRenderer;
 
-    // 自定义渲染类型 - 不进行深度测试的线条，可以透过方块显示
     private static final RenderType LINES_SEE_THROUGH = RenderType.create(
             "invsee_lines_see_through",
             DefaultVertexFormat.POSITION_COLOR_NORMAL,
@@ -41,13 +36,13 @@ public class ItemMarkRenderer extends EntityRenderer<ItemMarkEntity> {
             1536,
             RenderType.CompositeState.builder()
                     .setShaderState(RenderStateShard.RENDERTYPE_LINES_SHADER)
-                    .setLineState(new RenderStateShard.LineStateShard(OptionalDouble.of(2.0))) // 线条宽度
+                    .setLineState(new RenderStateShard.LineStateShard(OptionalDouble.of(2.0)))
                     .setLayeringState(RenderStateShard.VIEW_OFFSET_Z_LAYERING)
                     .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
                     .setOutputState(RenderStateShard.ITEM_ENTITY_TARGET)
-                    .setWriteMaskState(RenderStateShard.COLOR_WRITE) // 只写颜色，不写深度
+                    .setWriteMaskState(RenderStateShard.COLOR_WRITE)
                     .setCullState(RenderStateShard.NO_CULL)
-                    .setDepthTestState(RenderStateShard.NO_DEPTH_TEST) // 不进行深度测试
+                    .setDepthTestState(RenderStateShard.NO_DEPTH_TEST)
                     .createCompositeState(false)
     );
 
@@ -78,23 +73,19 @@ public class ItemMarkRenderer extends EntityRenderer<ItemMarkEntity> {
         float lifeProgress = entity.getLifeProgress();
         float alpha = lifeProgress > 0.8f ? (1f - lifeProgress) / 0.2f : 1f;
 
-        // 渲染容器方块边框高亮 - 只要有容器位置就渲染
         BlockPos containerPos = entity.getContainerPos();
         if (containerPos != null) {
             renderContainerOutline(poseStack, bufferSource, entity, containerPos, alpha);
         }
 
-        // 上下浮动效果 - 参考 ItemEntityRenderer
         float bobOffset = Mth.sin(((float) entity.tickCount + partialTick) / 10.0F) * 0.1F + 0.1F;
 
         poseStack.pushPose();
         poseStack.translate(0.0F, bobOffset + 0.25F, 0.0F);
 
-        // Y轴旋转 - 参考 ItemEntityRenderer.getSpin
         float spin = ((float) entity.tickCount + partialTick) / 20.0F;
         poseStack.mulPose(Axis.YP.rotation(spin));
 
-        // 渲染物品 - 完全参考 ItemEntityRenderer
         BakedModel bakedModel = this.itemRenderer.getModel(itemStack, entity.level(), null, entity.getId());
         this.itemRenderer.render(
                 itemStack,
@@ -110,9 +101,6 @@ public class ItemMarkRenderer extends EntityRenderer<ItemMarkEntity> {
         poseStack.popPose();
     }
 
-    /**
-     * 渲染容器方块边框 - 使用透视渲染，可以穿透方块显示
-     */
     private void renderContainerOutline(PoseStack poseStack, MultiBufferSource bufferSource,
                                         ItemMarkEntity entity, BlockPos containerPos, float alpha) {
         Vec3 entityPos = entity.position();
@@ -126,7 +114,6 @@ public class ItemMarkRenderer extends EntityRenderer<ItemMarkEntity> {
         AABB box = new AABB(0, 0, 0, 1, 1, 1);
         float r = 1.0f, g = 0.84f, b = 0.0f;
 
-        // 使用自定义的透视渲染类型
         VertexConsumer lineBuffer = bufferSource.getBuffer(LINES_SEE_THROUGH);
         LevelRenderer.renderLineBox(poseStack, lineBuffer, box, r, g, b, alpha);
 

@@ -11,19 +11,11 @@ import net.minecraft.world.item.ItemStack;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Mekanism 信息提供者 - 实际获取化学品数据
- * 这个类只有在 Mekanism 加载时才会被调用
- */
 public class MekanismInfoProvider {
 
-    /**
-     * 获取物品的化学品信息
-     */
     public static List<Component> getChemicalInfo(ItemStack stack) {
         List<Component> lines = new ArrayList<>();
 
-        // 获取化学品处理器 Capability
         IChemicalHandler chemicalHandler = stack.getCapability(Capabilities.CHEMICAL.item());
         if (chemicalHandler == null) {
             return lines;
@@ -43,7 +35,6 @@ public class MekanismInfoProvider {
                     float percent = (float) amount / capacity;
                     ChatFormatting color = getChemicalColor(percent);
 
-                    // 获取化学品名称
                     Component chemicalName = chemicalStack.getTextComponent();
 
                     lines.add(Component.literal("⚗ ").withStyle(color)
@@ -57,9 +48,6 @@ public class MekanismInfoProvider {
         return lines;
     }
 
-    /**
-     * 根据化学品百分比获取颜色
-     */
     private static ChatFormatting getChemicalColor(float percent) {
         if (percent > 0.75f) return ChatFormatting.GREEN;
         if (percent > 0.5f) return ChatFormatting.YELLOW;

@@ -16,11 +16,7 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.Optional;
 
-/**
- * 物品标记实体 - 用于在世界中高亮显示容器中的物品
- */
 public class ItemMarkEntity extends Entity {
-    // 网络同步数据
     private static final EntityDataAccessor<String> OWNER_NAME = SynchedEntityData.defineId(
             ItemMarkEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<ItemStack> MARKED_ITEM = SynchedEntityData.defineId(
@@ -53,7 +49,6 @@ public class ItemMarkEntity extends Entity {
     @Override
     public void tick() {
         super.tick();
-        // 客户端和服务端都计时（客户端用于渲染淡出效果）
         timer++;
         if (!this.level().isClientSide) {
             if (timer >= InvseeConfig.getMarkDurationTicks()) {

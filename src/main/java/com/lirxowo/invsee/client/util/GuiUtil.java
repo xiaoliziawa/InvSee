@@ -18,9 +18,6 @@ import org.joml.Matrix4f;
 
 import javax.annotation.Nullable;
 
-/**
- * GUI工具类 - 参考 DRG-Laser-Pointer-Mod 的 GuiUtil
- */
 public class GuiUtil {
 
     public static void fill(GuiGraphics guiGraphics, float minX, float minY, float maxX, float maxY, int color) {
