@@ -49,9 +49,6 @@ public class MekanismInfoProvider {
     }
 
     private static ChatFormatting getChemicalColor(float percent) {
-        if (percent > 0.75f) return ChatFormatting.GREEN;
-        if (percent > 0.5f) return ChatFormatting.YELLOW;
-        if (percent > 0.25f) return ChatFormatting.GOLD;
-        return ChatFormatting.RED;
+        return ItemInfoHelper.getPercentColor(percent);
     }
 }
