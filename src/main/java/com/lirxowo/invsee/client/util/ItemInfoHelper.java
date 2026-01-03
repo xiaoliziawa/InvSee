@@ -76,6 +76,7 @@ public class ItemInfoHelper {
         if (rarity == Rarity.EPIC) return 0xFF55FF;
 
         // Handle custom rarities from mods (e.g., AvaritiaNeo's COSMIC)
+        // Why do you register a rarity yourself?
         // Try to get color from the rarity's style modifier
         try {
             ChatFormatting formatting = rarity.getStyleModifier().apply(Style.EMPTY).getColor() != null

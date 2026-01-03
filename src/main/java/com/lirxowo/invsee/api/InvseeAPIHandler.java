@@ -1,5 +1,6 @@
 package com.lirxowo.invsee.api;
 
+import com.lirxowo.invsee.Invsee;
 import com.lirxowo.invsee.api.event.MarkEvent;
 import com.lirxowo.invsee.api.provider.IContainerPositionProvider;
 import com.lirxowo.invsee.api.provider.IItemInfoProvider;
@@ -104,7 +105,7 @@ public final class InvseeAPIHandler {
                     return true;
                 }
             } catch (Exception e) {
-                com.lirxowo.invsee.Invsee.LOGGER.warn(
+                Invsee.LOGGER.warn(
                         "Error in mark event listener: {}", e.getMessage()
                 );
             }
@@ -117,7 +118,7 @@ public final class InvseeAPIHandler {
             try {
                 listener.onTrackingStarted(event);
             } catch (Exception e) {
-                com.lirxowo.invsee.Invsee.LOGGER.warn(
+                Invsee.LOGGER.warn(
                         "Error in mark event listener: {}", e.getMessage()
                 );
             }
@@ -129,7 +130,7 @@ public final class InvseeAPIHandler {
             try {
                 listener.onTrackingEnded(event);
             } catch (Exception e) {
-                com.lirxowo.invsee.Invsee.LOGGER.warn(
+                Invsee.LOGGER.warn(
                         "Error in mark event listener: {}", e.getMessage()
                 );
             }
@@ -141,7 +142,7 @@ public final class InvseeAPIHandler {
             try {
                 listener.onMarkEntityCreated(event);
             } catch (Exception e) {
-                com.lirxowo.invsee.Invsee.LOGGER.warn(
+                Invsee.LOGGER.warn(
                         "Error in mark event listener: {}", e.getMessage()
                 );
             }
@@ -153,7 +154,7 @@ public final class InvseeAPIHandler {
             try {
                 listener.onMarkEntityRemoved(event);
             } catch (Exception e) {
-                com.lirxowo.invsee.Invsee.LOGGER.warn(
+                Invsee.LOGGER.warn(
                         "Error in mark event listener: {}", e.getMessage()
                 );
             }
