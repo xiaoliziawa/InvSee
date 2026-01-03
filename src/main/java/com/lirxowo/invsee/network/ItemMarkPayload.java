@@ -1,6 +1,7 @@
 package com.lirxowo.invsee.network;
 
 import com.lirxowo.invsee.Invsee;
+import com.lirxowo.invsee.compat.ftbteams.FTBTeamsCompat;
 import com.lirxowo.invsee.config.InvseeConfig;
 import com.lirxowo.invsee.entity.ItemMarkEntity;
 import net.minecraft.core.BlockPos;
@@ -9,6 +10,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
@@ -23,6 +25,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public record ItemMarkPayload(MarkSource source, ItemStack itemStack) implements CustomPacketPayload {
 
@@ -93,19 +96,29 @@ public record ItemMarkPayload(MarkSource source, ItemStack itemStack) implements
                         level, player, markLocation, payload.itemStack, containerPos);
                 level.addFreshEntity(markEntity);
 
-                // Broadcast slot highlight to all nearby players
+                // Broadcast slot highlight to players based on team visibility
                 double syncRange = InvseeConfig.getMarkDisplayRange();
                 SlotHighlightSyncPayload syncPayload = new SlotHighlightSyncPayload(
-                        payload.itemStack, level.getGameTime());
-                PacketDistributor.sendToPlayersNear(
-                        level,
-                        null, // don't exclude anyone, include the sender too
-                        player.getX(),
-                        player.getY(),
-                        player.getZ(),
-                        syncRange,
-                        syncPayload
-                );
+                        payload.itemStack, level.getGameTime(), player.getUUID());
+
+                UUID senderUUID = player.getUUID();
+
+                // Get all players in range and filter by team visibility
+                for (ServerPlayer targetPlayer : level.getServer().getPlayerList().getPlayers()) {
+                    if (targetPlayer.level() != level) {
+                        continue;
+                    }
+
+                    double distanceSq = targetPlayer.distanceToSqr(player.getX(), player.getY(), player.getZ());
+                    if (distanceSq > syncRange * syncRange) {
+                        continue;
+                    }
+
+                    // Check team visibility
+                    if (FTBTeamsCompat.canSeeMarks(senderUUID, targetPlayer.getUUID())) {
+                        PacketDistributor.sendToPlayer(targetPlayer, syncPayload);
+                    }
+                }
             }
         });
     }

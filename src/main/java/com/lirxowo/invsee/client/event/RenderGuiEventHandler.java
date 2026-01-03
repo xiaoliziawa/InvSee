@@ -85,6 +85,11 @@ public class RenderGuiEventHandler {
         );
 
         for (ItemMarkEntity markEntity : list) {
+            // Filter by team visibility
+            if (!markEntity.shouldBeVisibleTo(player)) {
+                continue;
+            }
+
             ItemStack itemStack = markEntity.getMarkedItem();
             if (itemStack.isEmpty()) continue;
 

@@ -4,6 +4,7 @@ import com.lirxowo.invsee.entity.ItemMarkEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -16,6 +17,7 @@ import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
@@ -65,6 +67,13 @@ public class ItemMarkRenderer extends EntityRenderer<ItemMarkEntity> {
     @Override
     public void render(ItemMarkEntity entity, float entityYaw, float partialTick,
                        PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
+        // Check team visibility before rendering
+        Minecraft mc = Minecraft.getInstance();
+        Player localPlayer = mc.player;
+        if (localPlayer != null && !entity.shouldBeVisibleTo(localPlayer)) {
+            return; // Don't render if not visible to this player
+        }
+
         super.render(entity, entityYaw, partialTick, poseStack, bufferSource, packedLight);
 
         ItemStack itemStack = entity.getMarkedItem();

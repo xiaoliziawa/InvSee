@@ -1,8 +1,10 @@
 package com.lirxowo.invsee.entity;
 
+import com.lirxowo.invsee.compat.ftbteams.FTBTeamsCompat;
 import com.lirxowo.invsee.config.InvseeConfig;
 import com.lirxowo.invsee.registry.EntityRegister;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -14,7 +16,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
+import javax.annotation.Nullable;
 import java.util.Optional;
+import java.util.UUID;
 
 public class ItemMarkEntity extends Entity {
     private static final EntityDataAccessor<String> OWNER_NAME = SynchedEntityData.defineId(
@@ -23,6 +27,12 @@ public class ItemMarkEntity extends Entity {
             ItemMarkEntity.class, EntityDataSerializers.ITEM_STACK);
     private static final EntityDataAccessor<Optional<BlockPos>> CONTAINER_POS = SynchedEntityData.defineId(
             ItemMarkEntity.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
+    private static final EntityDataAccessor<Optional<UUID>> OWNER_UUID = SynchedEntityData.defineId(
+            ItemMarkEntity.class, EntityDataSerializers.OPTIONAL_UUID);
+    private static final EntityDataAccessor<Optional<UUID>> TEAM_ID = SynchedEntityData.defineId(
+            ItemMarkEntity.class, EntityDataSerializers.OPTIONAL_UUID);
+    private static final EntityDataAccessor<Boolean> OWNER_IN_PARTY = SynchedEntityData.defineId(
+            ItemMarkEntity.class, EntityDataSerializers.BOOLEAN);
 
     private int timer = 0;
 
@@ -37,6 +47,12 @@ public class ItemMarkEntity extends Entity {
         this.entityData.set(OWNER_NAME, owner.getName().getString());
         this.entityData.set(MARKED_ITEM, itemStack.copy());
         this.entityData.set(CONTAINER_POS, Optional.ofNullable(containerPos));
+        this.entityData.set(OWNER_UUID, Optional.of(owner.getUUID()));
+
+        // Set team information
+        UUID teamId = FTBTeamsCompat.getPlayerTeamId(owner.getUUID());
+        this.entityData.set(TEAM_ID, Optional.ofNullable(teamId));
+        this.entityData.set(OWNER_IN_PARTY, FTBTeamsCompat.isInParty(owner.getUUID()));
     }
 
     @Override
@@ -44,6 +60,9 @@ public class ItemMarkEntity extends Entity {
         builder.define(OWNER_NAME, "");
         builder.define(MARKED_ITEM, ItemStack.EMPTY);
         builder.define(CONTAINER_POS, Optional.empty());
+        builder.define(OWNER_UUID, Optional.empty());
+        builder.define(TEAM_ID, Optional.empty());
+        builder.define(OWNER_IN_PARTY, false);
     }
 
     @Override
@@ -74,6 +93,15 @@ public class ItemMarkEntity extends Entity {
             );
             this.entityData.set(CONTAINER_POS, Optional.of(pos));
         }
+        if (compound.contains("OwnerUUID")) {
+            this.entityData.set(OWNER_UUID, Optional.of(compound.getUUID("OwnerUUID")));
+        }
+        if (compound.contains("TeamID")) {
+            this.entityData.set(TEAM_ID, Optional.of(compound.getUUID("TeamID")));
+        }
+        if (compound.contains("OwnerInParty")) {
+            this.entityData.set(OWNER_IN_PARTY, compound.getBoolean("OwnerInParty"));
+        }
         this.timer = compound.getInt("Timer");
     }
 
@@ -86,6 +114,9 @@ public class ItemMarkEntity extends Entity {
             compound.putInt("ContainerY", pos.getY());
             compound.putInt("ContainerZ", pos.getZ());
         });
+        this.entityData.get(OWNER_UUID).ifPresent(uuid -> compound.putUUID("OwnerUUID", uuid));
+        this.entityData.get(TEAM_ID).ifPresent(uuid -> compound.putUUID("TeamID", uuid));
+        compound.putBoolean("OwnerInParty", this.entityData.get(OWNER_IN_PARTY));
         compound.putInt("Timer", this.timer);
     }
 
@@ -93,16 +124,54 @@ public class ItemMarkEntity extends Entity {
         return this.entityData.get(OWNER_NAME);
     }
 
+    @Nullable
+    public UUID getOwnerUUID() {
+        return this.entityData.get(OWNER_UUID).orElse(null);
+    }
+
+    @Nullable
+    public UUID getTeamId() {
+        return this.entityData.get(TEAM_ID).orElse(null);
+    }
+
+    public boolean isOwnerInParty() {
+        return this.entityData.get(OWNER_IN_PARTY);
+    }
+
     public ItemStack getMarkedItem() {
         return this.entityData.get(MARKED_ITEM);
     }
 
+    @Nullable
     public BlockPos getContainerPos() {
         return this.entityData.get(CONTAINER_POS).orElse(null);
     }
 
     public float getLifeProgress() {
         return (float) timer / InvseeConfig.getMarkDurationTicks();
+    }
+
+    /**
+     * Check if this mark should be visible to the given viewer player.
+     * This uses FTB Teams integration if available.
+     *
+     * @param viewer the player viewing the mark
+     * @return true if the mark should be visible to the viewer
+     */
+    public boolean shouldBeVisibleTo(Player viewer) {
+        UUID ownerUUID = getOwnerUUID();
+        if (ownerUUID == null) {
+            // Legacy entity without owner UUID, show to everyone
+            return true;
+        }
+
+        // Same player always sees their own marks
+        if (ownerUUID.equals(viewer.getUUID())) {
+            return true;
+        }
+
+        // Use client-side check with stored team data
+        return FTBTeamsCompat.canSeeMarksClient(ownerUUID, getTeamId(), isOwnerInParty(), viewer);
     }
 
     @Override

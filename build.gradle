@@ -91,6 +91,10 @@ dependencies {
     runtimeOnly("mezz.jei:jei-${mc_version}-neoforge:${jei_version}")
 
     implementation("curse.maven:AvaritiaNeo-1083158:7353987")
+    implementation("curse.maven:FTBTeams-404468:7369021")
+
+    runtimeOnly("curse.maven:ArchitecturyAPI-419699:5786327")
+    runtimeOnly("curse.maven:FTBLibrary-404465:7312258")
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
