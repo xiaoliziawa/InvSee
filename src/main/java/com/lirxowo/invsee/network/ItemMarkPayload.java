@@ -29,13 +29,10 @@ import java.util.UUID;
 
 public record ItemMarkPayload(MarkSource source, ItemStack itemStack) implements CustomPacketPayload {
 
-    /**
-     * Source of the marked item
-     */
     public enum MarkSource {
-        PLAYER_INVENTORY,  // From player's own inventory
-        CONTAINER,         // From a container (chest, etc.)
-        VIRTUAL            // From JEI or other virtual sources (not a real container)
+        PLAYER_INVENTORY,
+        CONTAINER,
+        VIRTUAL
     }
 
     public static final CustomPacketPayload.Type<ItemMarkPayload> TYPE =
@@ -73,7 +70,6 @@ public record ItemMarkPayload(MarkSource source, ItemStack itemStack) implements
                         toRemove.add(markEntity);
                     }
                 }
-                // Now safely remove them
                 for (ItemMarkEntity entity : toRemove) {
                     entity.discard();
                 }
@@ -81,7 +77,6 @@ public record ItemMarkPayload(MarkSource source, ItemStack itemStack) implements
                 Vec3 markLocation;
                 BlockPos containerPos = null;
 
-                // Only try to get container position if source is CONTAINER
                 if (payload.source == MarkSource.CONTAINER) {
                     containerPos = getContainerPosFromMenu(player);
                 }
@@ -93,17 +88,16 @@ public record ItemMarkPayload(MarkSource source, ItemStack itemStack) implements
                 }
 
                 ItemMarkEntity markEntity = new ItemMarkEntity(
-                        level, player, markLocation, payload.itemStack, containerPos);
+                        level, player, markLocation, payload.itemStack, containerPos,
+                        convertMarkSource(payload.source));
                 level.addFreshEntity(markEntity);
 
-                // Broadcast slot highlight to players based on team visibility
                 double syncRange = InvseeConfig.getMarkDisplayRange();
                 SlotHighlightSyncPayload syncPayload = new SlotHighlightSyncPayload(
                         payload.itemStack, level.getGameTime(), player.getUUID());
 
                 UUID senderUUID = player.getUUID();
 
-                // Get all players in range and filter by team visibility
                 for (ServerPlayer targetPlayer : level.getServer().getPlayerList().getPlayers()) {
                     if (targetPlayer.level() != level) {
                         continue;
@@ -114,7 +108,6 @@ public record ItemMarkPayload(MarkSource source, ItemStack itemStack) implements
                         continue;
                     }
 
-                    // Check team visibility
                     if (FTBTeamsCompat.canSeeMarks(senderUUID, targetPlayer.getUUID())) {
                         PacketDistributor.sendToPlayer(targetPlayer, syncPayload);
                     }
@@ -278,5 +271,13 @@ public record ItemMarkPayload(MarkSource source, ItemStack itemStack) implements
         } catch (Exception ignored) {
         }
         return null;
+    }
+
+    private static ItemMarkEntity.MarkSource convertMarkSource(MarkSource source) {
+        return switch (source) {
+            case PLAYER_INVENTORY -> ItemMarkEntity.MarkSource.PLAYER_INVENTORY;
+            case CONTAINER -> ItemMarkEntity.MarkSource.CONTAINER;
+            case VIRTUAL -> ItemMarkEntity.MarkSource.VIRTUAL;
+        };
     }
 }

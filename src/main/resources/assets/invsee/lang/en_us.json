@@ -1,5 +1,7 @@
 {
   "entity.invsee.item_mark": "Item Mark",
   "key.invsee.mark_item": "Mark/Highlight Item",
-  "key.categories.invsee": "InvSee"
+  "key.categories.invsee": "InvSee",
+  "invsee.hint.view_recipe": "Right-click to view recipe",
+  "invsee.hint.scroll": "[Scroll to change]"
 }

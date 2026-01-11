@@ -42,8 +42,6 @@ public record SlotHighlightSyncPayload(ItemStack itemStack, long gameTime, UUID 
         context.enqueueWork(() -> {
             Minecraft mc = Minecraft.getInstance();
             if (mc.level != null && mc.player != null) {
-                // Team filtering is already done server-side in ItemMarkPayload.handleDataInServer
-                // Only players who should see the mark will receive this packet
                 TrackingList.startTracking(payload.itemStack, payload.gameTime);
             }
         });

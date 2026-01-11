@@ -67,11 +67,10 @@ public class ItemMarkRenderer extends EntityRenderer<ItemMarkEntity> {
     @Override
     public void render(ItemMarkEntity entity, float entityYaw, float partialTick,
                        PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
-        // Check team visibility before rendering
         Minecraft mc = Minecraft.getInstance();
         Player localPlayer = mc.player;
         if (localPlayer != null && !entity.shouldBeVisibleTo(localPlayer)) {
-            return; // Don't render if not visible to this player
+            return;
         }
 
         super.render(entity, entityYaw, partialTick, poseStack, bufferSource, packedLight);

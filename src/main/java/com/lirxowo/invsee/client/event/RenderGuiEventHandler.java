@@ -1,8 +1,12 @@
 package com.lirxowo.invsee.client.event;
 
 import com.lirxowo.invsee.Invsee;
+import com.lirxowo.invsee.client.recipe.RecipePanelInteractionHandler;
+import com.lirxowo.invsee.client.recipe.RecipePanelRenderer;
+import com.lirxowo.invsee.client.recipe.RecipePanelState;
 import com.lirxowo.invsee.client.util.GuiUtil;
 import com.lirxowo.invsee.client.util.ItemInfoHelper;
+import com.lirxowo.invsee.compat.jei.JEICompat;
 import com.lirxowo.invsee.config.InvseeConfig;
 import com.lirxowo.invsee.entity.ItemMarkEntity;
 import com.mojang.blaze3d.platform.Window;
@@ -12,6 +16,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -37,6 +42,9 @@ public class RenderGuiEventHandler {
     private static final int LINE_HEIGHT = 10;
     private static final int TOOLTIP_GAP = 8;
     private static final int MAX_TOOLTIP_WIDTH = 200;
+
+    private static final ResourceLocation JEI_ICON = ResourceLocation.fromNamespaceAndPath(Invsee.MODID, "textures/gui/jei_icon.png");
+    private static final int JEI_ICON_SIZE = 10;
 
     @SubscribeEvent
     public static void onRenderGui(RenderGuiEvent.Post event) {
@@ -85,7 +93,6 @@ public class RenderGuiEventHandler {
         );
 
         for (ItemMarkEntity markEntity : list) {
-            // Filter by team visibility
             if (!markEntity.shouldBeVisibleTo(player)) {
                 continue;
             }
@@ -100,7 +107,6 @@ public class RenderGuiEventHandler {
             Component itemName = itemStack.getHoverName();
             Component ownerName = Component.literal("[" + markEntity.getOwnerName() + "]");
 
-            // Only get extra info if config allows
             boolean showExtraInfo = InvseeConfig.isShowExtraInfo();
             List<Component> infoLines = showExtraInfo ? ItemInfoHelper.getItemInfoLines(itemStack) : List.of();
             List<Component> tooltipLines = InvseeConfig.isShowTooltip()
@@ -145,6 +151,17 @@ public class RenderGuiEventHandler {
             float bgTop = yScreen - 14;
             float bgBottom = yScreen + 10 + infoLines.size() * LINE_HEIGHT;
 
+            if (JEICompat.isLoaded() && RecipePanelInteractionHandler.isLookingAt(markEntity)) {
+                poseStack.pushPose();
+                poseStack.scale(0.8F, 0.8F, 0.8F);
+                Component hintText = Component.translatable("invsee.hint.view_recipe");
+                float hintScaledX = xScreen * 1.25F;
+                float hintScaledY = (bgTop - 10) * 1.25F;
+                int hintColor = (alpha << 24) | 0x88FF88;
+                GuiUtil.drawCenteredString(guiGraphics, font, hintText, hintScaledX, hintScaledY, hintColor);
+                poseStack.popPose();
+            }
+
             GuiUtil.fill(guiGraphics, xScreen - refWidth / 2 - 2, bgTop, xScreen + refWidth / 2 + 2, bgBottom, bgColor);
 
             if (rarity != Rarity.COMMON) {
@@ -172,11 +189,43 @@ public class RenderGuiEventHandler {
             float scaledX = xScreen * 1.25F;
             float scaledY = (yScreen + yOffset + 8) * 1.25F;
             int ownerColor = (alpha << 24) | 0xFFFF00;
-            GuiUtil.drawCenteredString(guiGraphics, font, ownerName, scaledX, scaledY, ownerColor);
+
+            if (markEntity.isFromJEI() && JEICompat.isLoaded()) {
+                float ownerWidth = font.width(ownerName);
+                float iconSpacing = 2;
+                float totalWidth = JEI_ICON_SIZE + iconSpacing + ownerWidth;
+                float startX = scaledX - totalWidth / 2;
+
+                poseStack.pushPose();
+                poseStack.scale(1.25F, 1.25F, 1.25F);
+                float iconX = startX / 1.25F;
+                float iconY = scaledY / 1.25F - 1;
+                float iconAlpha = alpha / 255.0F;
+                guiGraphics.setColor(1.0F, 1.0F, 1.0F, iconAlpha);
+                guiGraphics.blit(JEI_ICON, (int) iconX, (int) iconY, 0, 0, JEI_ICON_SIZE, JEI_ICON_SIZE, JEI_ICON_SIZE, JEI_ICON_SIZE);
+                guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+                poseStack.popPose();
+
+                float textX = startX + JEI_ICON_SIZE + iconSpacing;
+                guiGraphics.drawString(font, ownerName, (int) textX, (int) scaledY, ownerColor, true);
+            } else {
+                GuiUtil.drawCenteredString(guiGraphics, font, ownerName, scaledX, scaledY, ownerColor);
+            }
+
             poseStack.popPose();
 
             if (InvseeConfig.isShowTooltip() && !tooltipLines.isEmpty()) {
                 renderTooltipBox(guiGraphics, font, tooltipLines, xScreen, yScreen, refWidth, bgTop, bgBottom, alpha, guiWidth);
+            }
+
+            if (RecipePanelState.isExpandedFor(markEntity)) {
+                float animProgress = RecipePanelState.getSmoothedProgress(partialTick);
+                RecipePanelRenderer.renderRecipePanelNextToLabel(
+                        guiGraphics, mc,
+                        xScreen, yScreen, refWidth,
+                        bgTop, bgBottom,
+                        alpha, animProgress
+                );
             }
         }
 

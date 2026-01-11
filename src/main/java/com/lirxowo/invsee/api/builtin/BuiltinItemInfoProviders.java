@@ -57,7 +57,6 @@ public class BuiltinItemInfoProviders {
             } else if (rarity == Rarity.EPIC) {
                 name = "Epic";
             } else {
-                // Handle custom rarities from mods (e.g., AvaritiaNeo's COSMIC)
                 name = rarity.name();
             }
             lines.add(Component.literal("✦ " + name).withStyle(rarity.getStyleModifier()));

@@ -33,6 +33,14 @@ public class ItemMarkEntity extends Entity {
             ItemMarkEntity.class, EntityDataSerializers.OPTIONAL_UUID);
     private static final EntityDataAccessor<Boolean> OWNER_IN_PARTY = SynchedEntityData.defineId(
             ItemMarkEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Byte> MARK_SOURCE = SynchedEntityData.defineId(
+            ItemMarkEntity.class, EntityDataSerializers.BYTE);
+
+    public enum MarkSource {
+        PLAYER_INVENTORY,
+        CONTAINER,
+        VIRTUAL
+    }
 
     private int timer = 0;
 
@@ -42,14 +50,18 @@ public class ItemMarkEntity extends Entity {
     }
 
     public ItemMarkEntity(Level level, Player owner, Vec3 location, ItemStack itemStack, BlockPos containerPos) {
+        this(level, owner, location, itemStack, containerPos, MarkSource.PLAYER_INVENTORY);
+    }
+
+    public ItemMarkEntity(Level level, Player owner, Vec3 location, ItemStack itemStack, BlockPos containerPos, MarkSource source) {
         this(EntityRegister.ITEM_MARK.get(), level);
         this.setPos(location);
         this.entityData.set(OWNER_NAME, owner.getName().getString());
         this.entityData.set(MARKED_ITEM, itemStack.copy());
         this.entityData.set(CONTAINER_POS, Optional.ofNullable(containerPos));
         this.entityData.set(OWNER_UUID, Optional.of(owner.getUUID()));
+        this.entityData.set(MARK_SOURCE, (byte) source.ordinal());
 
-        // Set team information
         UUID teamId = FTBTeamsCompat.getPlayerTeamId(owner.getUUID());
         this.entityData.set(TEAM_ID, Optional.ofNullable(teamId));
         this.entityData.set(OWNER_IN_PARTY, FTBTeamsCompat.isInParty(owner.getUUID()));
@@ -63,6 +75,7 @@ public class ItemMarkEntity extends Entity {
         builder.define(OWNER_UUID, Optional.empty());
         builder.define(TEAM_ID, Optional.empty());
         builder.define(OWNER_IN_PARTY, false);
+        builder.define(MARK_SOURCE, (byte) 0);
     }
 
     @Override
@@ -102,6 +115,9 @@ public class ItemMarkEntity extends Entity {
         if (compound.contains("OwnerInParty")) {
             this.entityData.set(OWNER_IN_PARTY, compound.getBoolean("OwnerInParty"));
         }
+        if (compound.contains("MarkSource")) {
+            this.entityData.set(MARK_SOURCE, compound.getByte("MarkSource"));
+        }
         this.timer = compound.getInt("Timer");
     }
 
@@ -117,6 +133,7 @@ public class ItemMarkEntity extends Entity {
         this.entityData.get(OWNER_UUID).ifPresent(uuid -> compound.putUUID("OwnerUUID", uuid));
         this.entityData.get(TEAM_ID).ifPresent(uuid -> compound.putUUID("TeamID", uuid));
         compound.putBoolean("OwnerInParty", this.entityData.get(OWNER_IN_PARTY));
+        compound.putByte("MarkSource", this.entityData.get(MARK_SOURCE));
         compound.putInt("Timer", this.timer);
     }
 
@@ -147,30 +164,33 @@ public class ItemMarkEntity extends Entity {
         return this.entityData.get(CONTAINER_POS).orElse(null);
     }
 
+    public MarkSource getMarkSource() {
+        byte ordinal = this.entityData.get(MARK_SOURCE);
+        MarkSource[] values = MarkSource.values();
+        if (ordinal >= 0 && ordinal < values.length) {
+            return values[ordinal];
+        }
+        return MarkSource.PLAYER_INVENTORY;
+    }
+
+    public boolean isFromJEI() {
+        return getMarkSource() == MarkSource.VIRTUAL;
+    }
+
     public float getLifeProgress() {
         return (float) timer / InvseeConfig.getMarkDurationTicks();
     }
 
-    /**
-     * Check if this mark should be visible to the given viewer player.
-     * This uses FTB Teams integration if available.
-     *
-     * @param viewer the player viewing the mark
-     * @return true if the mark should be visible to the viewer
-     */
     public boolean shouldBeVisibleTo(Player viewer) {
         UUID ownerUUID = getOwnerUUID();
         if (ownerUUID == null) {
-            // Legacy entity without owner UUID, show to everyone
             return true;
         }
 
-        // Same player always sees their own marks
         if (ownerUUID.equals(viewer.getUUID())) {
             return true;
         }
 
-        // Use client-side check with stored team data
         return FTBTeamsCompat.canSeeMarksClient(ownerUUID, getTeamId(), isOwnerInParty(), viewer);
     }
 

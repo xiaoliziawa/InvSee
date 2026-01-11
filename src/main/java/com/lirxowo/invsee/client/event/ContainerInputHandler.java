@@ -69,18 +69,15 @@ public class ContainerInputHandler {
         }
 
         ItemStack itemStack = null;
-        MarkSource source = MarkSource.VIRTUAL; // Default to virtual (JEI, etc.)
+        MarkSource source = MarkSource.VIRTUAL;
 
-        // First, check if JEI has an item under mouse (prioritize JEI to fix the bug)
         if (JEICompat.isLoaded()) {
             itemStack = JEICompat.getItemUnderMouse();
             if (itemStack != null && !itemStack.isEmpty()) {
-                // Item is from JEI, mark as virtual source
                 source = MarkSource.VIRTUAL;
             }
         }
 
-        // If no JEI item, check container slots
         if ((itemStack == null || itemStack.isEmpty()) && mc.screen instanceof AbstractContainerScreen<?> containerScreen) {
             Slot hoveredSlot = containerScreen.getSlotUnderMouse();
             if (hoveredSlot != null && hoveredSlot.hasItem()) {

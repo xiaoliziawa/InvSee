@@ -6,11 +6,6 @@ import net.minecraft.world.item.ItemStack;
 
 import javax.annotation.Nullable;
 
-/**
- * 标记事件类
- *
- * @since 1.0.0
- */
 public class MarkEvent {
 
     public enum Type {

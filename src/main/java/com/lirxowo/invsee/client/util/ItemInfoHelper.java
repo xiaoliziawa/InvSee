@@ -69,15 +69,11 @@ public class ItemInfoHelper {
     }
 
     public static int getRarityColor(Rarity rarity) {
-        // Handle vanilla rarities
         if (rarity == Rarity.COMMON) return 0xFFFFFF;
         if (rarity == Rarity.UNCOMMON) return 0xFFFF55;
         if (rarity == Rarity.RARE) return 0x55FFFF;
         if (rarity == Rarity.EPIC) return 0xFF55FF;
 
-        // Handle custom rarities from mods (e.g., AvaritiaNeo's COSMIC)
-        // Why do you register a rarity yourself?
-        // Try to get color from the rarity's style modifier
         try {
             ChatFormatting formatting = rarity.getStyleModifier().apply(Style.EMPTY).getColor() != null
                 ? null : ChatFormatting.WHITE;

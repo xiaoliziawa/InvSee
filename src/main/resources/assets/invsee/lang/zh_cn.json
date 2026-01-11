@@ -1,5 +1,7 @@
 {
   "entity.invsee.item_mark": "物品标记",
   "key.invsee.mark_item": "标记/高亮物品",
-  "key.categories.invsee": "InvSee"
+  "key.categories.invsee": "InvSee",
+  "invsee.hint.view_recipe": "右键查看配方",
+  "invsee.hint.scroll": "[滚轮切换]"
 }
