@@ -2,6 +2,7 @@ package com.lirxowo.invsee.client.recipe;
 
 import com.lirxowo.invsee.client.util.GuiUtil;
 import com.lirxowo.invsee.compat.jei.JEICompat;
+import com.mojang.blaze3d.vertex.PoseStack;
 import mezz.jei.api.gui.IRecipeLayoutDrawable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -69,13 +70,23 @@ public class RecipePanelRenderer {
         int panelWidth = 80;
         float panelHeight = labelBottom - labelTop;
 
-        float startX = labelLeft - panelWidth;
-        float targetX = labelLeft - PANEL_GAP - panelWidth;
-        float panelX = startX + (targetX - startX) * easeOutCubic(animProgress);
+        float panelX = labelLeft - PANEL_GAP - panelWidth;
+        float panelCenterY = (labelTop + labelBottom) / 2;
 
-        int adjustedAlpha = (int) (alpha * animProgress);
+        float scaleProgress = easeOutBack(animProgress);
+        float alphaProgress = easeOutCubic(animProgress);
+
+        int adjustedAlpha = (int) (alpha * alphaProgress);
         int bgAlpha = adjustedAlpha * 64 / 255;
         int bgColor = (bgAlpha << 24) | (BG_COLOR & 0x00FFFFFF);
+
+        PoseStack poseStack = guiGraphics.pose();
+        poseStack.pushPose();
+
+        float panelCenterX = panelX + panelWidth / 2;
+        poseStack.translate(panelCenterX, panelCenterY, 0);
+        poseStack.scale(scaleProgress, scaleProgress, 1.0f);
+        poseStack.translate(-panelCenterX, -panelCenterY, 0);
 
         GuiUtil.fill(guiGraphics, panelX, labelTop, panelX + panelWidth, labelBottom, bgColor);
 
@@ -86,6 +97,8 @@ public class RecipePanelRenderer {
         float centerY = (labelTop + labelBottom) / 2 - 4;
         GuiUtil.drawCenteredString(guiGraphics, font, net.minecraft.network.chat.Component.literal(message),
                 centerX, centerY, textColor);
+
+        poseStack.popPose();
     }
 
     private static void renderRecipePanel(
@@ -112,16 +125,26 @@ public class RecipePanelRenderer {
         int panelWidth = layoutWidth + PANEL_PADDING * 2;
         int panelHeight = layoutHeight + PANEL_PADDING * 2 + 14;
 
-        float startX = labelLeft - panelWidth;
-        float targetX = labelLeft - PANEL_GAP - panelWidth;
-        float panelX = startX + (targetX - startX) * easeOutCubic(animProgress);
+        float panelX = labelLeft - PANEL_GAP - panelWidth;
 
         float labelCenterY = (labelTop + labelBottom) / 2;
         float panelY = labelCenterY - panelHeight / 2.0F;
+        float panelCenterX = panelX + panelWidth / 2;
+        float panelCenterY = panelY + panelHeight / 2;
 
-        int adjustedAlpha = (int) (alpha * animProgress);
+        float scaleProgress = easeOutBack(animProgress);
+        float alphaProgress = easeOutCubic(animProgress);
+
+        int adjustedAlpha = (int) (alpha * alphaProgress);
         int bgAlpha = adjustedAlpha * 200 / 255;
         int bgColor = (bgAlpha << 24) | (BG_COLOR & 0x00FFFFFF);
+
+        PoseStack poseStack = guiGraphics.pose();
+        poseStack.pushPose();
+
+        poseStack.translate(panelCenterX, panelCenterY, 0);
+        poseStack.scale(scaleProgress, scaleProgress, 1.0f);
+        poseStack.translate(-panelCenterX, -panelCenterY, 0);
 
         GuiUtil.fill(guiGraphics, panelX, panelY, panelX + panelWidth, panelY + panelHeight, bgColor);
 
@@ -131,9 +154,9 @@ public class RecipePanelRenderer {
         int layoutY = (int) (panelY + PANEL_PADDING + borderPaddingY);
         layout.setPosition(layoutX, layoutY);
 
-        guiGraphics.pose().pushPose();
+        poseStack.pushPose();
         layout.drawRecipe(guiGraphics, 0, 0);
-        guiGraphics.pose().popPose();
+        poseStack.popPose();
 
         int currentIndex = RecipePanelState.getCurrentRecipeIndex();
         int totalRecipes = RecipePanelState.getTotalRecipes();
@@ -151,6 +174,8 @@ public class RecipePanelRenderer {
             GuiUtil.drawCenteredString(guiGraphics, font, net.minecraft.network.chat.Component.literal(scrollHint),
                     textX, textY + 10, hintColor);
         }
+
+        poseStack.popPose();
     }
 
     private static void drawRainbowBorder(GuiGraphics guiGraphics, float x, float y, float width, float height, int alpha) {
@@ -211,5 +236,11 @@ public class RecipePanelRenderer {
 
     private static float easeOutCubic(float x) {
         return 1 - (float) Math.pow(1 - x, 3);
+    }
+
+    private static float easeOutBack(float x) {
+        float c1 = 1.70158f;
+        float c3 = c1 + 1;
+        return (float) (1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2));
     }
 }
