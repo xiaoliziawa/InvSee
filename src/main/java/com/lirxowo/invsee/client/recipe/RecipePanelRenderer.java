@@ -8,6 +8,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.Rect2i;
+import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 
 public class RecipePanelRenderer {
@@ -95,7 +96,7 @@ public class RecipePanelRenderer {
         int textColor = (adjustedAlpha << 24) | (TEXT_COLOR & 0x00FFFFFF);
         float centerX = panelX + (float) panelWidth / 2;
         float centerY = (labelTop + labelBottom) / 2 - 4;
-        GuiUtil.drawCenteredString(guiGraphics, font, net.minecraft.network.chat.Component.literal(message),
+        GuiUtil.drawCenteredString(guiGraphics, font, Component.literal(message),
                 centerX, centerY, textColor);
 
         poseStack.popPose();
