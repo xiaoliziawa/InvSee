@@ -69,8 +69,8 @@ public class RecipePanelRenderer {
         int panelWidth = 80;
         float panelHeight = labelBottom - labelTop;
 
+        float startX = labelLeft - panelWidth;
         float targetX = labelLeft - PANEL_GAP - panelWidth;
-        float startX = labelLeft - PANEL_GAP;
         float panelX = startX + (targetX - startX) * easeOutCubic(animProgress);
 
         int adjustedAlpha = (int) (alpha * animProgress);
@@ -112,8 +112,8 @@ public class RecipePanelRenderer {
         int panelWidth = layoutWidth + PANEL_PADDING * 2;
         int panelHeight = layoutHeight + PANEL_PADDING * 2 + 14;
 
+        float startX = labelLeft - panelWidth;
         float targetX = labelLeft - PANEL_GAP - panelWidth;
-        float startX = labelLeft - PANEL_GAP;
         float panelX = startX + (targetX - startX) * easeOutCubic(animProgress);
 
         float labelCenterY = (labelTop + labelBottom) / 2;
