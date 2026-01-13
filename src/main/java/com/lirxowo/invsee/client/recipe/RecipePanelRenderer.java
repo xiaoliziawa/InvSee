@@ -83,7 +83,7 @@ public class RecipePanelRenderer {
         PoseStack poseStack = guiGraphics.pose();
         poseStack.pushPose();
 
-        float panelCenterX = panelX + panelWidth / 2;
+        float panelCenterX = panelX + (float) panelWidth / 2;
         poseStack.translate(panelCenterX, panelCenterY, 0);
         poseStack.scale(scaleProgress, scaleProgress, 1.0f);
         poseStack.translate(-panelCenterX, -panelCenterY, 0);
@@ -93,7 +93,7 @@ public class RecipePanelRenderer {
         drawRainbowBorder(guiGraphics, panelX, labelTop, panelWidth, panelHeight, adjustedAlpha);
 
         int textColor = (adjustedAlpha << 24) | (TEXT_COLOR & 0x00FFFFFF);
-        float centerX = panelX + panelWidth / 2;
+        float centerX = panelX + (float) panelWidth / 2;
         float centerY = (labelTop + labelBottom) / 2 - 4;
         GuiUtil.drawCenteredString(guiGraphics, font, net.minecraft.network.chat.Component.literal(message),
                 centerX, centerY, textColor);
@@ -129,8 +129,8 @@ public class RecipePanelRenderer {
 
         float labelCenterY = (labelTop + labelBottom) / 2;
         float panelY = labelCenterY - panelHeight / 2.0F;
-        float panelCenterX = panelX + panelWidth / 2;
-        float panelCenterY = panelY + panelHeight / 2;
+        float panelCenterX = panelX + (float) panelWidth / 2;
+        float panelCenterY = panelY + (float) panelHeight / 2;
 
         float scaleProgress = easeOutBack(animProgress);
         float alphaProgress = easeOutCubic(animProgress);
