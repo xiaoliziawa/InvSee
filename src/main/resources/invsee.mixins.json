@@ -1,0 +1,18 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.lirxowo.invsee.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "invsee.refmap.json",
+  "mixins": [
+  ],
+  "client": [
+    "SlotHighlightMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
